@@ -221,6 +221,22 @@ def index():
         color=color
     )
 
+@app.after_request
+def set_csp(response):
+    response.headers["Content-Security-Policy"] = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' https://fonts.googleapis.com; "
+    "font-src https://fonts.gstatic.com; "
+    "img-src 'self' https:; "
+    "connect-src 'self' https://api.twitter.com https://twitter.com; "
+    "frame-src https://www.youtube.com; "
+    "base-uri 'self'; "
+    "form-action 'self';"
+)
+    return response
+
+
 # =========================
 # 本番用
 # =========================
