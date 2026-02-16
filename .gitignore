@@ -1,0 +1,4 @@
+.env
+ranking.db
+__pycache__/
+*.pyc

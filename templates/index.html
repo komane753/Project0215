@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube炎上度チェッカー</title>
+
+    <!-- CSP（厳格版） -->
+    <meta http-equiv="Content-Security-Policy"
+    content="
+        default-src 'self';
+        script-src 'self';
+        style-src 'self' https://fonts.googleapis.com;
+        font-src https://fonts.gstatic.com;
+    ">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+<div class="container">
+
+    <h1>🔥 YouTube炎上度チェッカー</h1>
+
+    <form method="POST">
+        <input type="text" name="video_url" placeholder="YouTubeのURLを入力" required>
+        <button type="submit">分析する</button>
+    </form>
+
+    {% if result %}
+    <div class="result-box">
+        <h2>{{ result.title }}</h2>
+        <p>総コメント数：{{ result.total }}</p>
+        <p>ネガティブ率：{{ result.negative_rate }}%</p>
+        <p>炎上スコア：{{ result.fire_score }}</p>
+
+        <div class="gauge-fill"
+            data-width="{{ result.fire_score if result.fire_score < 100 else 100 }}"
+            data-color="{{ color }}">
+        </div>
+
+        <a href="https://www.youtube.com/watch?v={{ result.video_id }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="watch-btn">
+            ▶ YouTubeで見る
+        </a>
+    </div>
+    {% endif %}
+
+    <h2>🔥 炎上ランキングTOP10</h2>
+    <ul>
+        {% for video_id, title, score in rankings %}
+        <li>
+            {{ title }} - {{ score }}
+
+            <div class="ranking-buttons">
+                <a href="https://www.youtube.com/watch?v={{ video_id }}"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                   ▶ 視聴
+                </a>
+
+                <button onclick="shareToX('{{ title }}', '{{ video_id }}')">
+                    🐦 X投稿
+                </button>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+
+</div>
+
+<!-- JS -->
+<script src="/app.js"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
