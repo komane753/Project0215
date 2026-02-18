@@ -3,48 +3,20 @@ from googleapiclient.discovery import build
 import math
 import os
 import re
+import sqlite3
+from dotenv import load_dotenv
 from urllib.parse import urlparse
-import psycopg2
-from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 
 # =========================
 # 環境変数
 # =========================
+load_dotenv()
 API_KEY = os.getenv("YOUTUBE_API_KEY")
-DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not API_KEY:
     raise ValueError("YOUTUBE_API_KEY が設定されていません")
-
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL が設定されていません")
-
-# =========================
-# DB接続
-# =========================
-def get_connection():
-    return psycopg2.connect(DATABASE_URL)
-
-# =========================
-# DB初期化
-# =========================
-def init_db():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS rankings (
-            video_id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            fire_score REAL NOT NULL
-        )
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
-
-init_db()
 
 # =========================
 # ネガティブワード
@@ -55,6 +27,26 @@ NEGATIVE_WORDS = [
     "許せない", "ひどい", "酷い", "ありえない", "あり得ない", "失望", 
     "がっかり", "裏切り", "嘘", "詐欺", "犯罪", "違法",
 ]
+
+DB_NAME = "ranking.db"
+
+# =========================
+# DB初期化
+# =========================
+def init_db():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS rankings (
+            video_id TEXT PRIMARY KEY,
+            title TEXT,
+            fire_score REAL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_db()
 
 # =========================
 # URL検証
@@ -78,7 +70,7 @@ def extract_video_id(url):
     return None
 
 # =========================
-# YouTube API
+# コメント取得（例外処理付き）
 # =========================
 def get_youtube_comments(video_id, max_comments=300):
     try:
@@ -116,6 +108,9 @@ def get_youtube_comments(video_id, max_comments=300):
         print("YouTube API Error:", e)
         return []
 
+# =========================
+# 動画タイトル取得
+# =========================
 def get_video_title(video_id):
     try:
         youtube = build("youtube", "v3", developerKey=API_KEY)
@@ -162,43 +157,32 @@ def analyze_video(video_url):
     }
 
 # =========================
-# DB保存（UPSERT）
+# DB保存
 # =========================
 def save_ranking(video_id, title, score):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO rankings (video_id, title, fire_score)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (video_id)
-        DO UPDATE SET
-            title = EXCLUDED.title,
-            fire_score = EXCLUDED.fire_score
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("""
+        INSERT OR REPLACE INTO rankings (video_id, title, fire_score)
+        VALUES (?, ?, ?)
     """, (video_id, title, score))
-
     conn.commit()
-    cur.close()
     conn.close()
 
 # =========================
 # ランキング取得
 # =========================
 def get_top_rankings():
-    conn = get_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-
-    cur.execute("""
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("""
         SELECT video_id, title, fire_score
         FROM rankings
         ORDER BY fire_score DESC
         LIMIT 10
     """)
-
-    rows = cur.fetchall()
-    cur.close()
+    rows = c.fetchall()
     conn.close()
-
     return rows
 
 # =========================
@@ -235,8 +219,24 @@ def index():
         color=color
     )
 
+@app.after_request
+def set_csp(response):
+    response.headers["Content-Security-Policy"] = (
+    "default-src 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' https://fonts.googleapis.com; "
+    "font-src https://fonts.gstatic.com; "
+    "img-src 'self' https:; "
+    "connect-src 'self' https://api.twitter.com https://twitter.com; "
+    "frame-src https://www.youtube.com; "
+    "base-uri 'self'; "
+    "form-action 'self';"
+)
+    return response
+
+
 # =========================
-# 本番起動
+# 本番用
 # =========================
 if __name__ == "__main__":
     app.run(debug=False)
