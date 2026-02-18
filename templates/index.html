@@ -48,27 +48,26 @@
 
     <h2>🔥 炎上ランキングTOP10</h2>
     <ul>
-        {% for video_id, title, score in rankings %}
-        <li>
-            {{ title }} - {{ score }}
+    {% for row in rankings %}
+    <li>
+        {{ row.title }} - {{ row.fire_score }}
 
-            <div class="ranking-buttons">
-                <a href="https://www.youtube.com/watch?v={{ video_id }}"
-                   target="_blank"
-                   rel="noopener noreferrer">
-                   ▶ 視聴
-                </a>
+        <div class="ranking-buttons">
+            <a href="https://www.youtube.com/watch?v={{ row.video_id }}"
+               target="_blank"
+               rel="noopener noreferrer">
+               ▶ 視聴
+            </a>
 
-              <button class="share-btn"
-                data-title="{{ title|e }}"
-                data-id="{{ video_id|e }}">
+            <button class="share-btn"
+                data-title="{{ row.title|e }}"
+                data-id="{{ row.video_id|e }}">
                 🐦 X投稿
-              </button>
-            </div>
-        </li>
-        {% endfor %}
+            </button>
+        </div>
+    </li>
+    {% endfor %}
     </ul>
-
 </div>
 
 <!-- JS -->
