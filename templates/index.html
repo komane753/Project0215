@@ -50,18 +50,18 @@
     <ul>
     {% for row in rankings %}
     <li>
-        {{ row.title }} - {{ row.fire_score }}
+        {{ row[1] }} - {{ row[2] }}
 
         <div class="ranking-buttons">
-            <a href="https://www.youtube.com/watch?v={{ row.video_id }}"
-               target="_blank"
-               rel="noopener noreferrer">
-               ▶ 視聴
+            <a href="https://www.youtube.com/watch?v={{ row[0] }}"
+            target="_blank"
+            rel="noopener noreferrer">
+            ▶ 視聴
             </a>
 
             <button class="share-btn"
-                data-title="{{ row.title|e }}"
-                data-id="{{ row.video_id|e }}">
+                data-title="{{ row[1]|e }}"
+                data-id="{{ row[0]|e }}">
                 🐦 X投稿
             </button>
         </div>
